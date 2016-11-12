@@ -1,0 +1,10 @@
+ManyTrainsIntent what trains are delayed
+ManyTrainsIntent are any trains delayed
+ManyTrainsIntent what lines are delayed
+ManyTrainsIntent are there any delays
+ManyTrainsIntent are there train delays
+
+OneTrainIntent is the {train} train delayed
+OneTrainIntent is the {train} delayed
+OneTrainIntent are there delays on the {train} train
+OneTrainIntent is the {train} running late

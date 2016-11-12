@@ -1,0 +1,42 @@
+
+{
+  "intents": [
+    {
+      "intent": "ManyTrainsIntent"
+    },
+    {
+      "intent": "OneTrainIntent",
+      "slots":[
+        {
+          "name":"train",
+          "type":"TRAIN_LINES"
+        }
+      ]
+    },
+    {
+      "intent": "MyTrainIntent"
+    },
+    // {
+    //   "intent": "AMAZON.StartOverIntent"
+    // },
+    // {
+    //   "intent": "AMAZON.RepeatIntent"
+    // },
+    // {
+    //   "intent": "AMAZON.HelpIntent"
+    // },
+    // {
+    //   "intent": "AMAZON.YesIntent"
+    // },
+    // {
+    //   "intent": "AMAZON.NoIntent"
+    // },
+    {
+      "intent": "AMAZON.StopIntent"
+    },
+    {
+      "intent": "AMAZON.CancelIntent"
+    }
+
+  ]
+}
