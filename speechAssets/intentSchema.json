@@ -16,6 +16,15 @@
     {
       "intent": "MyTrainIntent"
     },
+    {
+      "intent": "NewUserIntent",
+      "slots":[
+        {
+          "name":"train",
+          "type":"TRAIN_LINES"
+        }
+      ]
+    },
     // {
     //   "intent": "AMAZON.StartOverIntent"
     // },

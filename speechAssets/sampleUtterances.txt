@@ -8,3 +8,10 @@ OneTrainIntent is the {train} train delayed
 OneTrainIntent is the {train} delayed
 OneTrainIntent are there delays on the {train} train
 OneTrainIntent is the {train} running late
+
+MyTrainIntent is my train delayed
+MyTrainIntent is my train running late
+MyTrainIntent is my train late
+
+NewUserIntent my train is {train}
+NewUserIntent i take the {train} train
