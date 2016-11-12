@@ -12,6 +12,9 @@ OneTrainIntent is the {train} running late
 MyTrainIntent is my train delayed
 MyTrainIntent is my train running late
 MyTrainIntent is my train late
+MyTrainIntent hows my commute
+MyTrainIntent my train status
+
 
 NewUserIntent my train is {train}
 NewUserIntent i take the {train} train
