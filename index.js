@@ -63,7 +63,7 @@ var handlers = {
     ];
 
     if (validTrains.indexOf(train) < 0) {
-      this.emit(':tell', 'Invalid train, please try again!');
+      this.emit(':ask', 'Invalid train, please try again!', 'Invalid train, please try again!');
     } else {
       getOneTrainStatus(train, toSay => {
         this.emit(':ask', toSay, 'Sorry, please try again');
@@ -71,21 +71,29 @@ var handlers = {
     }
   },
   'MyTrainIntent': function() {
+    console.log('mytrain started')
     var train = '';
     if (this.attributes['myTrain']) {
-      train = myTrain;
+      console.log('already set')
+      train = this.attributes['myTrain'];
       getOneTrainStatus(train, toSay => {
         this.emit(':ask', toSay, 'Sorry, please try again');
       })
     } else {
+      console.log('getting uid')
       var fullUid = this.event.session.user.userId;
       fullUid = fullUid.split('.');
       var uid = fullUid[fullUid.length - 1];
-      request(`https://serene-sierra-17416.herokuapp.com/users/${uid}`, function(err,res,body) {
+      console.log('making req to herokuapp')
+      request(`https://serene-sierra-17416.herokuapp.com/users/${uid}`, (err,res,body) => {
+
         var parsed = JSON.parse(body);
+        console.log('got res from herokuapp', parsed)
         if (parsed.error) {
+          console.log('asking for train')
           this.emit(':ask', 'What is your train?', 'Sorry, try again');
         } else {
+          console.log('already have train')
           this.attributes['myTrain'] = parsed.train;
           getOneTrainStatus(parsed.train, toSay => {
             this.emit(':ask', toSay, 'Sorry, please try again');
@@ -94,13 +102,16 @@ var handlers = {
       })
     }
   },
-  'NewTrainIntent': function() {
+  'NewUserIntent': function() {
+
+    console.log('NewTrainIntent fired')
     var train = this.event.request.intent.slots.train.value;
 
     var fullUid = this.event.session.user.userId;
     fullUid = fullUid.split('.');
     var uid = fullUid[fullUid.length - 1];
-
+    console.log('uid', uid)
+    console.log('train', train)
     switch (train) {
       case 'fore': case 'for':
         train = '4'; break;
@@ -121,7 +132,7 @@ var handlers = {
       case 'are':
         train ='R'; break;
       default:
-        train = train;
+        train = train.toUpperCase();
     }
 
     var validTrains = [
@@ -131,14 +142,19 @@ var handlers = {
       '1', '2', '3', '4', '5',
       '6', '7'
     ];
+    console.log('train', train)
 
     if (validTrains.indexOf(train) < 0) {
-      this.emit(':tell', 'Invalid train, please try again!');
+      console.log('invalid train')
+      this.emit(':ask', 'Invalid train, please try again!', 'Invalid train, please try again!');
     } else {
       makeNewUser(uid, train, train => {
+        console.log('made new user', train)
+        this.attributes['myTrain'] = train;
         if (train === 'WHOOPS') {
-          this.emit(':tell', 'Invalid train, please try again!');
+          this.emit(':ask', 'Invalid train, please try again!', 'Invalid train, please try again!');
         } else {
+          this.attributes['myTrain'] = train;
           getOneTrainStatus(train, toSay => {
             this.emit(':ask', toSay, 'Sorry, please try again');
           })
@@ -150,18 +166,17 @@ var handlers = {
 }
 
 function makeNewUser(uid, train, callback) {
-  request.post('https://serene-sierra-17416.herokuapp.com/users/', {uid: uid, train: train}, function (err, res, body) {
+  console.log('making new user')
+  request.post('https://serene-sierra-17416.herokuapp.com/users/', {form: {uid: uid, train: train}}, (err, res, body) => {
+
     var parsed = JSON.parse(body);
-    if (parsed.error) {
-      callback('WHOOPS');
-    } else {
+
       callback(train);
-    }
-  })
+      })
 }
 
 function getAllTrainsStatus(callback) {
-  request('http://81052766.ngrok.io/api/v1/trains', function(err, res, body) {
+  request('http://81052766.ngrok.io/api/v1/trains', (err, res, body) => {
     if (err || res.statusCode !== 200) {
       callback("WHOOPS");
     } else {
@@ -175,7 +190,7 @@ function getAllTrainsStatus(callback) {
 }
 
 function getOneTrainStatus(train, callback) {
-  request(`http://81052766.ngrok.io/api/v1/trains/${train}`, function(err, res, body) {
+  request(`http://81052766.ngrok.io/api/v1/trains/${train}`, (err, res, body) => {
     if (err || res.statusCode !== 200) {
       callback('There was an error looking up that information.');
     }
