@@ -2,12 +2,15 @@ ManyTrainsIntent what trains are delayed
 ManyTrainsIntent are any trains delayed
 ManyTrainsIntent what lines are delayed
 ManyTrainsIntent are there any delays
+ManyTrainsIntent all delays
 ManyTrainsIntent are there train delays
 
 OneTrainIntent is the {train} train delayed
 OneTrainIntent is the {train} delayed
 OneTrainIntent are there delays on the {train} train
 OneTrainIntent is the {train} running late
+OneTrainIntent {train} train status
+OneTrainIntent {train} subway status
 
 MyTrainIntent hows my commute
 MyTrainIntent train status
@@ -15,3 +18,8 @@ MyTrainIntent my train status
 
 NewUserIntent my train is {train}
 NewUserIntent i take the {train} train
+
+ChangeTrainIntent change my train to the {train} train
+
+DeleteUserIntent delete my account
+DeleteUserIntent delete my data

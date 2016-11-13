@@ -25,6 +25,18 @@
         }
       ]
     },
+    {
+      "intent": "ChangeTrainIntent",
+      "slots":[
+        {
+          "name":"train",
+          "type":"TRAIN_LINES"
+        }
+      ]
+    },
+    {
+      "intent": "DeleteUserIntent"
+    }
     // {
     //   "intent": "AMAZON.StartOverIntent"
     // },

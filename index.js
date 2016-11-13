@@ -10,15 +10,16 @@ const ERROR = {
 };
 
 exports.handler = function(event, context, callback){
-    var alexa = Alexa.handler(event, context);
-    alexa.registerHandlers(handlers);
-    alexa.execute();
+  var alexa = Alexa.handler(event, context);
+  alexa.registerHandlers(handlers);
+  alexa.execute();
 };
 
 var handlers = {
   'LaunchRequest': function() {
+    this.attributes['uid'] = uidParser(this.event.session.user.userId);
     this.emit(':ask',
-      'Hello! Welcome to train status.',
+      'Hello! Welcome to train status. You can ask about a specific line, or say all delays',
       ERROR.parse
     );
   },
@@ -36,15 +37,16 @@ var handlers = {
   },
   'MyTrainIntent': function() {
     var train = '';
+
     if (this.attributes['myTrain']) {
       train = this.attributes['myTrain'];
       getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse) );
     } else {
-      var uid = uidParser(this.event.session.user.userId);
+      var uid = this.attributes['uid'];
       request(`http://mta.millenialsears.com/users/${uid}`, (err,res,body) => {
         var parsed = JSON.parse(body);
         if (parsed.error) {
-          this.emit(':ask', 'What is your train?', ERROR.parse);
+          this.emit(':ask', 'What train do you take?', ERROR.parse);
         } else {
           train = parsed.train;
           this.attributes['myTrain'] = train;
@@ -55,31 +57,70 @@ var handlers = {
   },
   'NewUserIntent': function() {
     var train = trainSlotParser(this.event.request.intent.slots.train.value);
-    var uid = uidParser(this.event.session.user.userId);
-    if (!validTrain(train)) {
-      this.emit(':ask', ERROR.train, ERROR.train);
+    var uid = this.attributes['uid'];
+    if (validTrain(train)) {
+      newUser(uid, train, train => {
+        this.attributes['myTrain'] = train;
+        getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse));
+      });
     } else {
-      makeNewUser(uid, train, train => {
-        if (train === 'WHOOPS') {
-          this.emit(':ask', 'Invalid train, please try again!', 'Invalid train, please try again!');
-        } else {
-          this.attributes['myTrain'] = train;
-          getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse));
-        }
-      })
+      this.emit(':ask', ERROR.train, ERROR.train);
     }
-
+  },
+  'ChangeTrainIntent': function() {
+    var train = trainSlotParser(this.event.request.intent.slots.train.value);
+    var uid = this.attributes['uid'];
+    if (validTrain(train)) {
+      updateUser(uid, train, status => this.emit(':ask', status, ERROR.parse));
+    } else {
+      this.emit(':ask', ERROR.train, ERROR.parse)
+    }
+  },
+  'DeleteUserIntent': function() {
+    var uid = this.attributes['uid'];
+    deleteUser(uid, status => this.emit(':ask', status, ERROR.parse));
   }
 }
 
-function makeNewUser(uid, train, callback) {
+function deleteUser(uid, callback) {
+  request.del(`http://mta.millenialsears.com/users/${uid}`, (err, res, body) => {
+    if (err || res.statusCode !== 200) {
+      callback(ERROR.server);
+    } else {
+      callback('Your user data has been deleted.');
+    }
+  });
+}
+
+function updateUser(uid, train, callback) {
+  var postData = {
+    form: {
+      train: train
+    }
+  };
+  request.put(`http://mta.millenialsears.com/users/${uid}`, postData, (err, res, body) => {
+    if (err || res.statusCode !== 200) {
+      callback(ERROR.server);
+    } else {
+      callback(`Your new preferred train is the ${train} line.`);
+    }
+  });
+}
+
+function newUser(uid, train, callback) {
   var postData = {
     form: {
       uid: uid,
       train: train
     }
   };
-  request.post('http://mta.millenialsears.com/users/', postData, () => callback(train) );
+  request.post('http://mta.millenialsears.com/users/', postData, (err, res, body) => {
+    if (err || res.statusCode !== 200) {
+      callback(ERROR.server);
+    } else {
+      callback(train);
+    }
+  });
 }
 
 function getAllTrainsStatus(callback) {
@@ -87,14 +128,7 @@ function getAllTrainsStatus(callback) {
     if (err || res.statusCode !== 200) {
       callback(ERROR.server);
     } else {
-      var delayedTrains = JSON.parse(body)
-        .filter( el => el["status"] !== "GOOD SERVICE" )
-        .map( el => el["train"] );
-      if (delayedTrains.length > 0) {
-        callback(`The ${delayedTrains.join(', ')}, trains are delayed.`);
-      } else {
-        callback('No trains are delayed.');
-      }
+      callback(allTrainStatusParser(body));
     }
   })
 }
@@ -107,6 +141,14 @@ function getOneTrainStatus(train, callback) {
       callback(singleTrainStatusParser(body));
     }
   })
+}
+
+
+function allTrainStatusParser(body) {
+  var delayedTrains = JSON.parse(body)
+    .filter( el => el["status"] !== "GOOD SERVICE" )
+    .map( el => el["train"] );
+  return (delayedTrains.length > 0) ? `The ${delayedTrains.join(', ')}, trains are delayed.` : 'No trains are delayed.';
 }
 
 function singleTrainStatusParser(body) {
