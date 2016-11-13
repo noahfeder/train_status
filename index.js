@@ -3,161 +3,68 @@ const Alexa = require('alexa-sdk');
 
 const request = require('request');
 
-exports.handler = function(event, context, callback){
+const ERROR = {
+  parse: 'What was that?',
+  server: `I couldn't get that information.`,
+  train: 'Invalid train, please try again.'
+};
 
+exports.handler = function(event, context, callback){
     var alexa = Alexa.handler(event, context);
     alexa.registerHandlers(handlers);
     alexa.execute();
-
 };
 
 var handlers = {
-  'LaunchRequest': function () {
-    var say = 'Welcome!';
-    this.emit(':ask', say, 'try again');
+  'LaunchRequest': function() {
+    this.emit(':ask',
+      'Hello! Welcome to train status.',
+      ERROR.parse
+    );
   },
   'ManyTrainsIntent': function() {
-    var say = '';
-
-    getAllTrainsStatus( trains => {
-      if (trains[0]) {
-        say = `The ${trains.join(', ')}, are delayed.`;
-      } else {
-        say = 'No trains are delayed.';
-      }
-       this.emit(':tell', say );
-    })
+    getAllTrainsStatus( trains => this.emit(':tell', trains) );
   },
   'OneTrainIntent': function() {
-    var train = this.event.request.intent.slots.train.value;
+    var train = trainSlotParser(this.event.request.intent.slots.train.value);
 
-    switch (train) {
-      case 'fore': case 'for':
-        train = '4'; break;
-      case 'gee':
-        train = 'G'; break;
-      case 'won': case 'wun': case 'one':
-        train = '1'; break;
-      case 'to': case 'two': case 'too':
-        train = '2'; break;
-      case 'be': case 'bee':
-        train = 'B'; break;
-      case 'sea': case 'see':
-        train = 'C'; break;
-      case 'eff': case 'if':
-        train = 'F'; break;
-      case 'cue': case 'queue':
-        train = 'Q'; break;
-      case 'are':
-        train ='R'; break;
-      default:
-        train = train;
-    }
-
-    var validTrains = [
-      'A', 'B', 'C', 'D', 'E',
-      'F', 'G', 'J', 'L', 'M',
-      'N', 'Q', 'R', 'S', 'Z',
-      '1', '2', '3', '4', '5',
-      '6', '7'
-    ];
-
-    if (validTrains.indexOf(train) < 0) {
-      this.emit(':ask', 'Invalid train, please try again!', 'Invalid train, please try again!');
+    if (validTrain(train)) {
+      getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse) );
     } else {
-      getOneTrainStatus(train, toSay => {
-        this.emit(':ask', toSay, 'Sorry, please try again');
-      })
+      this.emit(':ask', ERROR.train, ERROR.train);
     }
   },
   'MyTrainIntent': function() {
-    console.log('mytrain started')
     var train = '';
     if (this.attributes['myTrain']) {
-      console.log('already set')
       train = this.attributes['myTrain'];
-      getOneTrainStatus(train, toSay => {
-        this.emit(':ask', toSay, 'Sorry, please try again');
-      })
+      getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse) );
     } else {
-      console.log('getting uid')
-      var fullUid = this.event.session.user.userId;
-      fullUid = fullUid.split('.');
-      var uid = fullUid[fullUid.length - 1];
-      console.log('making req to herokuapp')
+      var uid = uidParser(this.event.session.user.userId);
       request(`http://mta.millenialsears.com/users/${uid}`, (err,res,body) => {
-
         var parsed = JSON.parse(body);
-        console.log('got res from herokuapp', parsed)
         if (parsed.error) {
-          console.log('asking for train')
-          this.emit(':ask', 'What is your train?', 'Sorry, try again');
+          this.emit(':ask', 'What is your train?', ERROR.parse);
         } else {
-          console.log('already have train')
-          this.attributes['myTrain'] = parsed.train;
-          getOneTrainStatus(parsed.train, toSay => {
-            this.emit(':ask', toSay, 'Sorry, please try again');
-          })
+          train = parsed.train;
+          this.attributes['myTrain'] = train;
+          getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse));
         }
       })
     }
   },
   'NewUserIntent': function() {
-
-    console.log('NewTrainIntent fired')
-    var train = this.event.request.intent.slots.train.value;
-
-    var fullUid = this.event.session.user.userId;
-    fullUid = fullUid.split('.');
-    var uid = fullUid[fullUid.length - 1];
-    console.log('uid', uid)
-    console.log('train', train)
-    switch (train) {
-      case 'fore': case 'for':
-        train = '4'; break;
-      case 'gee':
-        train = 'G'; break;
-      case 'won': case 'wun': case 'one':
-        train = '1'; break;
-      case 'to': case 'two': case 'too':
-        train = '2'; break;
-      case 'be': case 'bee':
-        train = 'B'; break;
-      case 'sea': case 'see':
-        train = 'C'; break;
-      case 'eff': case 'if':
-        train = 'F'; break;
-      case 'cue': case 'queue':
-        train = 'Q'; break;
-      case 'are':
-        train ='R'; break;
-      default:
-        train = train.toUpperCase();
-    }
-
-    var validTrains = [
-      'A', 'B', 'C', 'D', 'E',
-      'F', 'G', 'J', 'L', 'M',
-      'N', 'Q', 'R', 'S', 'Z',
-      '1', '2', '3', '4', '5',
-      '6', '7'
-    ];
-    console.log('train', train)
-
-    if (validTrains.indexOf(train) < 0) {
-      console.log('invalid train')
-      this.emit(':ask', 'Invalid train, please try again!', 'Invalid train, please try again!');
+    var train = trainSlotParser(this.event.request.intent.slots.train.value);
+    var uid = uidParser(this.event.session.user.userId);
+    if (!validTrain(train)) {
+      this.emit(':ask', ERROR.train, ERROR.train);
     } else {
       makeNewUser(uid, train, train => {
-        console.log('made new user', train)
-        this.attributes['myTrain'] = train;
         if (train === 'WHOOPS') {
           this.emit(':ask', 'Invalid train, please try again!', 'Invalid train, please try again!');
         } else {
           this.attributes['myTrain'] = train;
-          getOneTrainStatus(train, toSay => {
-            this.emit(':ask', toSay, 'Sorry, please try again');
-          })
+          getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse));
         }
       })
     }
@@ -166,25 +73,28 @@ var handlers = {
 }
 
 function makeNewUser(uid, train, callback) {
-  console.log('making new user')
-  request.post('http://mta.millenialsears.com/users/', {form: {uid: uid, train: train}}, (err, res, body) => {
-
-    var parsed = JSON.parse(body);
-
-      callback(train);
-      })
+  var postData = {
+    form: {
+      uid: uid,
+      train: train
+    }
+  };
+  request.post('http://mta.millenialsears.com/users/', postData, () => callback(train) );
 }
 
 function getAllTrainsStatus(callback) {
   request('http://mta.millenialsears.com/trains', (err, res, body) => {
     if (err || res.statusCode !== 200) {
-      callback("WHOOPS");
+      callback(ERROR.server);
     } else {
-      var delayedTrains = JSON.parse(body).filter( el => {
-        return el["status"] !== "GOOD SERVICE";
-      });
-
-      callback(delayedTrains.map( el => el["train"] ));
+      var delayedTrains = JSON.parse(body)
+        .filter( el => el["status"] !== "GOOD SERVICE" )
+        .map( el => el["train"] );
+      if (delayedTrains.length > 0) {
+        callback(`The ${delayedTrains.join(', ')}, trains are delayed.`);
+      } else {
+        callback('No trains are delayed.');
+      }
     }
   })
 }
@@ -192,20 +102,60 @@ function getAllTrainsStatus(callback) {
 function getOneTrainStatus(train, callback) {
   request(`http://mta.millenialsears.com/trains/${train}`, (err, res, body) => {
     if (err || res.statusCode !== 200) {
-      callback('There was an error looking up that information.');
+      callback(ERROR.server);
+    } else {
+      callback(singleTrainStatusParser(body));
     }
-    var toSay = '';
-    var parsed = JSON.parse(body);
-    switch (parsed.status) {
-      case 'GOOD SERVICE':
-        toSay = `The ${parsed.train}, train is on time.`;
-        break;
-      case 'PLANNED WORK':
-        toSay = `There is planned work on the ${parsed.train}, line.`;
-        break;
-      default:
-        toSay = `There are delays on the ${parsed.train}, line.`;
-    }
-    callback(toSay);
   })
+}
+
+function singleTrainStatusParser(body) {
+  var parsed = JSON.parse(body);
+  switch (parsed.status) {
+    case 'GOOD SERVICE':
+      return `The ${parsed.train}, train is on time.`;
+    case 'PLANNED WORK':
+      return `There is planned work on the ${parsed.train}, line.`;
+    case 'SERVICE CHANGE':
+      return `There is a service change on the ${parsed.train}, line.`;
+    default:
+      return `There are delays on the ${parsed.train}, line.`;
+  }
+}
+function trainSlotParser(train) {
+  switch (train) {
+      case 'fore': case 'for':
+        return '4';
+      case 'gee':
+        return 'G';
+      case 'won': case 'wun': case 'one':
+        return '1';
+      case 'to': case 'two': case 'too':
+        return '2';
+      case 'be': case 'bee':
+        return 'B';
+      case 'sea': case 'see':
+        return 'C';
+      case 'eff': case 'if':
+        return 'F';
+      case 'cue': case 'queue':
+        return 'Q';
+      case 'are':
+        return 'R';
+      default:
+        return train.toUpperCase();
+    }
+}
+
+function validTrain(train) {
+  var validTrains = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'J', 'L', 'M', 'N',
+    'Q', 'R', 'S', 'Z', '1', '2', '3', '4', '5', '6', '7'
+  ];
+  return !(validTrains.indexOf(train) < 0);
+}
+
+function uidParser(longUidString) {
+  var fullUid = longUidString.split('.');
+  return fullUid[fullUid.length - 1];
 }
