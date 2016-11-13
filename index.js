@@ -85,7 +85,7 @@ var handlers = {
       fullUid = fullUid.split('.');
       var uid = fullUid[fullUid.length - 1];
       console.log('making req to herokuapp')
-      request(`https://serene-sierra-17416.herokuapp.com/users/${uid}`, (err,res,body) => {
+      request(`http://mta.millenialsears.com/users/${uid}`, (err,res,body) => {
 
         var parsed = JSON.parse(body);
         console.log('got res from herokuapp', parsed)
@@ -167,7 +167,7 @@ var handlers = {
 
 function makeNewUser(uid, train, callback) {
   console.log('making new user')
-  request.post('https://serene-sierra-17416.herokuapp.com/users/', {form: {uid: uid, train: train}}, (err, res, body) => {
+  request.post('http://mta.millenialsears.com/users/', {form: {uid: uid, train: train}}, (err, res, body) => {
 
     var parsed = JSON.parse(body);
 
@@ -176,7 +176,7 @@ function makeNewUser(uid, train, callback) {
 }
 
 function getAllTrainsStatus(callback) {
-  request('http://81052766.ngrok.io/api/v1/trains', (err, res, body) => {
+  request('http://mta.millenialsears.com/trains', (err, res, body) => {
     if (err || res.statusCode !== 200) {
       callback("WHOOPS");
     } else {
@@ -190,7 +190,7 @@ function getAllTrainsStatus(callback) {
 }
 
 function getOneTrainStatus(train, callback) {
-  request(`http://81052766.ngrok.io/api/v1/trains/${train}`, (err, res, body) => {
+  request(`http://mta.millenialsears.com/trains/${train}`, (err, res, body) => {
     if (err || res.statusCode !== 200) {
       callback('There was an error looking up that information.');
     }
