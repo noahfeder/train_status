@@ -18,6 +18,7 @@ exports.handler = function(event, context, callback){
 var handlers = {
   'LaunchRequest': function() {
     this.attributes['uid'] = uidParser(this.event.session.user.userId);
+    console.log(this.attributes)
     this.emit(':ask',
       'Hello! Welcome to train status. You can ask about a specific line, or say all delays',
       ERROR.parse
