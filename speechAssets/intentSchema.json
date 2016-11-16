@@ -37,14 +37,14 @@
     {
       "intent": "DeleteUserIntent"
     },
-    // {
-    //   "intent": "AMAZON.StartOverIntent"
-    // },
+    {
+      "intent": "AMAZON.HelpIntent"
+    },
+    {
+      "intent": "AMAZON.StartOverIntent"
+    },
     // {
     //   "intent": "AMAZON.RepeatIntent"
-    // },
-    // {
-    //   "intent": "AMAZON.HelpIntent"
     // },
     // {
     //   "intent": "AMAZON.YesIntent"

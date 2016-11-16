@@ -16,7 +16,7 @@ exports.handler = function(event, context, callback){
 };
 
 var handlers = {
-  'LaunchRequest': function() {
+  'LaunchRequest': () => {
     this.attributes['uid'] = uidParser(this.event.session.user.userId);
     console.log(this.attributes)
     this.emit(':ask',
@@ -24,10 +24,10 @@ var handlers = {
       ERROR.parse
     );
   },
-  'ManyTrainsIntent': function() {
+  'ManyTrainsIntent': () => {
     getAllTrainsStatus( trains => this.emit(':tell', trains) );
   },
-  'OneTrainIntent': function() {
+  'OneTrainIntent': () => {
     var train = trainSlotParser(this.event.request.intent.slots.train.value);
 
     if (validTrain(train)) {
@@ -36,7 +36,7 @@ var handlers = {
       this.emit(':ask', ERROR.train, ERROR.train);
     }
   },
-  'MyTrainIntent': function() {
+  'MyTrainIntent': () => {
     var train = '';
 
     if (this.attributes['myTrain']) {
@@ -56,7 +56,7 @@ var handlers = {
       })
     }
   },
-  'NewUserIntent': function() {
+  'NewUserIntent': () => {
     var train = trainSlotParser(this.event.request.intent.slots.train.value);
     var uid = this.attributes['uid'];
     if (validTrain(train)) {
@@ -68,7 +68,7 @@ var handlers = {
       this.emit(':ask', ERROR.train, ERROR.train);
     }
   },
-  'ChangeTrainIntent': function() {
+  'ChangeTrainIntent': () => {
     var train = trainSlotParser(this.event.request.intent.slots.train.value);
     var uid = this.attributes['uid'];
     if (validTrain(train)) {
@@ -77,10 +77,21 @@ var handlers = {
       this.emit(':ask', ERROR.train, ERROR.parse)
     }
   },
-  'DeleteUserIntent': function() {
+  'DeleteUserIntent': () => {
     var uid = this.attributes['uid'];
     deleteUser(uid, status => this.emit(':ask', status, ERROR.parse));
-  }
+  },
+  'AMAZON.HelpIntent': () => {
+    var HELP = `Here are some things you can say:
+    what trains are delayed,
+    is the 4 train delayed,
+    L train status,
+    hows my commute`;
+    this.emit(':ask', HELP, ERROR.parse);
+  },
+  'AMAZON.StopIntent': () => {
+    this.emit(':tell', 'Goodbye.');
+  },
 }
 
 function deleteUser(uid, callback) {
