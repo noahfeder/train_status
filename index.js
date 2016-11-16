@@ -16,7 +16,7 @@ exports.handler = function(event, context, callback){
 };
 
 var handlers = {
-  'LaunchRequest': () => {
+  'LaunchRequest': function() {
     this.attributes['uid'] = uidParser(this.event.session.user.userId);
     console.log(this.attributes)
     this.emit(':ask',
@@ -24,10 +24,10 @@ var handlers = {
       ERROR.parse
     );
   },
-  'ManyTrainsIntent': () => {
+  'ManyTrainsIntent': function() {
     getAllTrainsStatus( trains => this.emit(':tell', trains) );
   },
-  'OneTrainIntent': () => {
+  'OneTrainIntent': function() {
     var train = trainSlotParser(this.event.request.intent.slots.train.value);
 
     if (validTrain(train)) {
@@ -36,14 +36,14 @@ var handlers = {
       this.emit(':ask', ERROR.train, ERROR.train);
     }
   },
-  'MyTrainIntent': () => {
+  'MyTrainIntent': function() {
     var train = '';
 
     if (this.attributes['myTrain']) {
       train = this.attributes['myTrain'];
       getOneTrainStatus(train, status => this.emit(':ask', status, ERROR.parse) );
     } else {
-      var uid = this.attributes['uid'];
+      var uid = this.attributes['uid'] || uidParser(this.event.session.user.userId);
       request(`http://mta.millenialsears.com/users/${uid}`, (err,res,body) => {
         var parsed = JSON.parse(body);
         if (parsed.error) {
@@ -56,9 +56,9 @@ var handlers = {
       })
     }
   },
-  'NewUserIntent': () => {
+  'NewUserIntent': function() {
     var train = trainSlotParser(this.event.request.intent.slots.train.value);
-    var uid = this.attributes['uid'];
+    var uid = this.attributes['uid'] || uidParser(this.event.session.user.userId);
     if (validTrain(train)) {
       newUser(uid, train, train => {
         this.attributes['myTrain'] = train;
@@ -68,20 +68,20 @@ var handlers = {
       this.emit(':ask', ERROR.train, ERROR.train);
     }
   },
-  'ChangeTrainIntent': () => {
+  'ChangeTrainIntent': function() {
     var train = trainSlotParser(this.event.request.intent.slots.train.value);
-    var uid = this.attributes['uid'];
+    var uid = this.attributes['uid'] || uidParser(this.event.session.user.userId);
     if (validTrain(train)) {
       updateUser(uid, train, status => this.emit(':ask', status, ERROR.parse));
     } else {
       this.emit(':ask', ERROR.train, ERROR.parse)
     }
   },
-  'DeleteUserIntent': () => {
-    var uid = this.attributes['uid'];
+  'DeleteUserIntent': function() {
+    var uid = this.attributes['uid'] || uidParser(this.event.session.user.userId);
     deleteUser(uid, status => this.emit(':ask', status, ERROR.parse));
   },
-  'AMAZON.HelpIntent': () => {
+  'AMAZON.HelpIntent': function() {
     var HELP = `Here are some things you can say:
     what trains are delayed,
     is the 4 train delayed,
@@ -89,7 +89,7 @@ var handlers = {
     hows my commute`;
     this.emit(':ask', HELP, ERROR.parse);
   },
-  'AMAZON.StopIntent': () => {
+  'AMAZON.StopIntent': function() {
     this.emit(':tell', 'Goodbye.');
   },
 }
@@ -99,6 +99,7 @@ function deleteUser(uid, callback) {
     if (err || res.statusCode !== 200) {
       callback(ERROR.server);
     } else {
+      this.attributes['myTrain'] = null;
       callback('Your user data has been deleted.');
     }
   });
@@ -114,6 +115,7 @@ function updateUser(uid, train, callback) {
     if (err || res.statusCode !== 200) {
       callback(ERROR.server);
     } else {
+      this.attributes['myTrain'] = train;
       callback(`Your new preferred train is the ${train} line.`);
     }
   });
