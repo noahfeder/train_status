@@ -18,7 +18,6 @@ exports.handler = function(event, context, callback){
 var handlers = {
   'LaunchRequest': function() {
     this.attributes['uid'] = uidParser(this.event.session.user.userId);
-    console.log(this.attributes)
     this.emit(':ask',
       'Hello! Welcome to train status. You can ask about a specific line, or say all delays',
       ERROR.parse
@@ -80,7 +79,10 @@ var handlers = {
   },
   'DeleteUserIntent': function() {
     var uid = this.attributes['uid'] || uidParser(this.event.session.user.userId);
-    deleteUser(uid, status => this.emit(':tell', status));
+    deleteUser(uid, status => {
+      this.attributes['myTrain'] = null;
+      this.emit(':tell', status);
+    });
   },
   'AMAZON.HelpIntent': function() {
     var HELP = `Here are some things you can say:
@@ -103,7 +105,6 @@ function deleteUser(uid, callback) {
     if (err || res.statusCode !== 200) {
       callback(ERROR.server);
     } else {
-      this.attributes['myTrain'] = null;
       callback('Your user data has been deleted.');
     }
   });
@@ -201,6 +202,8 @@ function trainSlotParser(train) {
         return 'Q';
       case 'are':
         return 'R';
+      case 'el':
+        return 'L';
       default:
         return train.toUpperCase();
     }

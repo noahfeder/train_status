@@ -4,7 +4,7 @@
   "description": "Train status for Alexa",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "zip -r train_status.zip node_modules/ package.json index.js"
   },
   "author": "",
   "license": "ISC",
